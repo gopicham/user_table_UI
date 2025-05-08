@@ -1,0 +1,55 @@
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+}
+
+th, td {
+  padding: 8px;
+  text-align: left;
+  border: 1px solid #ddd;
+}
+
+th {
+  background-color: hwb(358 13% 34%);
+}
+
+button {
+  padding: 5px 10px;
+  cursor: pointer;
+  border: 1px solid #ccc;
+  background-color: #f2f2f2;
+  margin: 0 5px;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  background-color: #ddd;
+}
+
+button:hover {
+  background-color: #ddd;
+}
+
+/* Optional: Add styles for the loading placeholder */
+.loading-placeholder {
+  height: 40px;
+  background: #f4f4f4;
+  margin: 10px 0;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% { background: #f4f4f4; }
+  50% { background: #e0e0e0; }
+  100% { background: #f4f4f4; }
+}
+
+table td {
+  word-wrap: break-word;
+  max-width: 150px; /* Adjust based on your preference */
+}
+
+thead {
+  background-color: yellow;
+}
