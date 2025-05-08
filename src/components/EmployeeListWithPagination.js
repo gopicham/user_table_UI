@@ -90,6 +90,8 @@ const EmployeeListWithPagination = () => {
     const [editData, setEditData] = useState({});
     const [bulkEdit, setBulkEdit] = useState(false);
     const [selectedRows, setSelectedRows] = useState([]);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [employeeToDelete, setEmployeeToDelete] = useState(null);
 
     useEffect(() => {
         const token = localStorage.getItem('token');
@@ -127,6 +129,82 @@ const EmployeeListWithPagination = () => {
             }
             setLoading(false);
         });
+    };
+
+    const handleDelete = async (id) => {
+        const token = localStorage.getItem('token');
+        if (!token) {
+            setError('User not authenticated. Please log in first.');
+            return;
+        }
+
+        try {
+            setLoading(true);
+            await axios.delete(
+                `http://localhost:8080/api/v1/employees/${id}`,
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+            
+            // Refresh the employee list
+            await fetchEmployees(token);
+        } catch (error) {
+            console.error('Error deleting employee:', error);
+            setError('Failed to delete employee. Please try again.');
+            setLoading(false);
+        }
+    };
+
+    const handleBulkDelete = async () => {
+        const token = localStorage.getItem('token');
+        if (!token) {
+            setError('User not authenticated. Please log in first.');
+            return;
+        }
+
+        try {
+            setLoading(true);
+            await axios.delete(
+                'http://localhost:8080/api/v1/employees/bulk',
+                { 
+                    data: { ids: selectedRows },
+                    headers: { Authorization: `Bearer ${token}` } 
+                }
+            );
+            
+            // Refresh the employee list
+            await fetchEmployees(token);
+            setSelectedRows([]);
+        } catch (error) {
+            console.error('Error deleting employees:', error);
+            setError('Failed to delete employees. Please try again.');
+            setLoading(false);
+        }
+    };
+
+    const handleDeleteClick = (id) => {
+        setEmployeeToDelete(id);
+        setShowDeleteConfirm(true);
+    };
+
+    const handleBulkDeleteClick = () => {
+        if (selectedRows.length > 0) {
+            setShowDeleteConfirm(true);
+        }
+    };
+
+    const handleConfirmDelete = async () => {
+        if (employeeToDelete) {
+            await handleDelete(employeeToDelete);
+        } else if (selectedRows.length > 0) {
+            await handleBulkDelete();
+        }
+        setShowDeleteConfirm(false);
+        setEmployeeToDelete(null);
+    };
+
+    const handleCancelDelete = () => {
+        setShowDeleteConfirm(false);
+        setEmployeeToDelete(null);
     };
 
     const totalPages = Math.ceil(totalEmployees / employeesPerPage);
@@ -330,24 +408,42 @@ const EmployeeListWithPagination = () => {
                 marginBottom: '20px',
                 boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
             }}>
-                Employee Table
+                User Table
             </h1>
 
             <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'space-between' }}>
-                <button
-                    onClick={handleBulkEditToggle}
-                    style={{
-                        padding: '8px 16px',
-                        backgroundColor: bulkEdit ? '#ff5722' : '#ffeb3b',
-                        color: '#333',
-                        border: '1px solid #ffc107',
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                        fontWeight: 'bold'
-                    }}
-                >
-                    {bulkEdit ? 'Cancel Bulk Edit' : 'Bulk Edit'}
-                </button>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                    <button
+                        onClick={handleBulkEditToggle}
+                        style={{
+                            padding: '8px 16px',
+                            backgroundColor: bulkEdit ? '#ff5722' : '#ffeb3b',
+                            color: '#333',
+                            border: '1px solid #ffc107',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            fontWeight: 'bold'
+                        }}
+                    >
+                        {bulkEdit ? 'Cancel Bulk Edit' : 'Bulk Edit'}
+                    </button>
+                    {selectedRows.length > 0 && (
+                        <button
+                            onClick={handleBulkDeleteClick}
+                            style={{
+                                padding: '8px 16px',
+                                backgroundColor: '#f44336',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '4px',
+                                cursor: 'pointer',
+                                fontWeight: 'bold'
+                            }}
+                        >
+                            Delete Selected
+                        </button>
+                    )}
+                </div>
 
                 {(editingId || (bulkEdit && selectedRows.length > 0)) && (
                     <div>
@@ -407,7 +503,7 @@ const EmployeeListWithPagination = () => {
                             <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #ff9800' }}>First Name</th>
                             <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #ff9800' }}>Last Name</th>
                             <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #ff9800' }}>Email</th>
-                            <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #ff9800', width: '120px' }}>Actions</th>
+                            <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #ff9800', width: '150px' }}>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -515,21 +611,38 @@ const EmployeeListWithPagination = () => {
                                                 </button>
                                             </div>
                                         ) : (
-                                            <button 
-                                                onClick={() => handleEdit(employee.id)}
-                                                disabled={bulkEdit}
-                                                style={{
-                                                    padding: '5px 10px',
-                                                    backgroundColor: '#2196f3',
-                                                    color: 'white',
-                                                    border: 'none',
-                                                    borderRadius: '3px',
-                                                    cursor: 'pointer',
-                                                    opacity: bulkEdit ? 0.5 : 1
-                                                }}
-                                            >
-                                                Edit
-                                            </button>
+                                            <div style={{ display: 'flex', gap: '5px' }}>
+                                                <button 
+                                                    onClick={() => handleEdit(employee.id)}
+                                                    disabled={bulkEdit}
+                                                    style={{
+                                                        padding: '5px 10px',
+                                                        backgroundColor: '#2196f3',
+                                                        color: 'white',
+                                                        border: 'none',
+                                                        borderRadius: '3px',
+                                                        cursor: 'pointer',
+                                                        opacity: bulkEdit ? 0.5 : 1
+                                                    }}
+                                                >
+                                                    Edit
+                                                </button>
+                                                <button 
+                                                    onClick={() => handleDeleteClick(employee.id)}
+                                                    disabled={bulkEdit || loading}
+                                                    style={{
+                                                        padding: '5px 10px',
+                                                        backgroundColor: '#f44336',
+                                                        color: 'white',
+                                                        border: 'none',
+                                                        borderRadius: '3px',
+                                                        cursor: 'pointer',
+                                                        opacity: (bulkEdit || loading) ? 0.5 : 1
+                                                    }}
+                                                >
+                                                    Delete
+                                                </button>
+                                            </div>
                                         )}
                                     </td>
                                 </tr>
@@ -552,6 +665,65 @@ const EmployeeListWithPagination = () => {
                 loading={loading}
                 generatePageNumbers={generatePageNumbers}
             />
+
+            {showDeleteConfirm && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    backgroundColor: 'rgba(0,0,0,0.5)',
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    zIndex: 1000
+                }}>
+                    <div style={{
+                        backgroundColor: 'white',
+                        padding: '20px',
+                        borderRadius: '5px',
+                        maxWidth: '400px',
+                        textAlign: 'center'
+                    }}>
+                        <h3>Confirm Delete</h3>
+                        <p>
+                            {employeeToDelete 
+                                ? 'Are you sure you want to delete this employee?'
+                                : `Are you sure you want to delete ${selectedRows.length} selected employees?`}
+                        </p>
+                        <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'center', gap: '10px' }}>
+                            <button
+                                onClick={handleCancelDelete}
+                                style={{
+                                    padding: '8px 16px',
+                                    backgroundColor: '#6c757d',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '4px',
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleConfirmDelete}
+                                disabled={loading}
+                                style={{
+                                    padding: '8px 16px',
+                                    backgroundColor: '#dc3545',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '4px',
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                {loading ? 'Deleting...' : 'Delete'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
