@@ -48,7 +48,7 @@ const PaginationControls = React.memo(({ currentPage, totalPages, handlePageClic
                     </button>
                 )
             ))}
-          <style>{styles}</style>
+
             <button
                 aria-label="Next Page"
                 onClick={() => handlePageClick(currentPage + 1)}
@@ -78,14 +78,6 @@ PaginationControls.propTypes = {
     generatePageNumbers: PropTypes.func.isRequired,
 };
 
-const styles = `
-@keyframes pulse {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.02); }
-  100% { transform: scale(1); }
-}
-`;
-
 const EmployeeListWithPagination = () => {
     const [employees, setEmployees] = useState([]);
     const [originalEmployees, setOriginalEmployees] = useState([]);
@@ -104,7 +96,10 @@ const EmployeeListWithPagination = () => {
     const [newEmployee, setNewEmployee] = useState({
         firstName: '',
         lastName: '',
-        emailId: ''
+        emailId: '',
+        salary: '',
+        createdDate: new Date().toISOString(),
+        updatedDate: new Date().toISOString()
     });
 
     useEffect(() => {
@@ -159,7 +154,6 @@ const EmployeeListWithPagination = () => {
                 { headers: { Authorization: `Bearer ${token}` } }
             );
             
-            // Refresh the employee list
             await fetchEmployees(token);
         } catch (error) {
             console.error('Error deleting employee:', error);
@@ -185,7 +179,6 @@ const EmployeeListWithPagination = () => {
                 }
             );
             
-            // Refresh the employee list
             await fetchEmployees(token);
             setSelectedRows([]);
         } catch (error) {
@@ -232,17 +225,24 @@ const EmployeeListWithPagination = () => {
             setLoading(true);
             await axios.post(
                 'http://localhost:8080/api/v1/employees',
-                newEmployee,
+                {
+                    ...newEmployee,
+                    salary: parseFloat(newEmployee.salary),
+                    createdDate: new Date().toISOString(),
+                    updatedDate: new Date().toISOString()
+                },
                 { headers: { Authorization: `Bearer ${token}` } }
             );
             
-            // Refresh the employee list
             await fetchEmployees(token);
             setShowAddForm(false);
             setNewEmployee({
                 firstName: '',
                 lastName: '',
-                emailId: ''
+                emailId: '',
+                salary: '',
+                createdDate: new Date().toISOString(),
+                updatedDate: new Date().toISOString()
             });
         } catch (error) {
             console.error('Error adding employee:', error);
@@ -264,7 +264,10 @@ const EmployeeListWithPagination = () => {
             setNewEmployee({
                 firstName: '',
                 lastName: '',
-                emailId: ''
+                emailId: '',
+                salary: '',
+                createdDate: new Date().toISOString(),
+                updatedDate: new Date().toISOString()
             });
         }
     };
@@ -364,21 +367,25 @@ const EmployeeListWithPagination = () => {
             setLoading(true);
             
             if (editingId) {
-                // Single edit
                 await axios.put(
                     `http://localhost:8080/api/v1/employees/${editingId}`,
-                    editData,
+                    {
+                        ...editData,
+                        salary: parseFloat(editData.salary),
+                        updatedDate: new Date().toISOString()
+                    },
                     { headers: { Authorization: `Bearer ${token}` } }
                 );
             } else if (bulkEdit && selectedRows.length > 0) {
-                // Bulk edit
                 const updates = employees
                     .filter(emp => selectedRows.includes(emp.id))
                     .map(emp => ({
                         id: emp.id,
                         firstName: emp.firstName,
                         lastName: emp.lastName,
-                        emailId: emp.emailId
+                        emailId: emp.emailId,
+                        salary: parseFloat(emp.salary),
+                        updatedDate: new Date().toISOString()
                     }));
                 
                 await axios.put(
@@ -462,6 +469,14 @@ const EmployeeListWithPagination = () => {
 
     return (
         <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '20px' }}>
+            <style>{`
+                @keyframes pulse {
+                    0% { transform: scale(1); }
+                    50% { transform: scale(1.03); }
+                    100% { transform: scale(1); }
+                }
+            `}</style>
+            
             <h1 style={{ 
                 textAlign: 'center', 
                 padding: '15px',
@@ -469,8 +484,8 @@ const EmployeeListWithPagination = () => {
                 borderRadius: '4px',
                 marginBottom: '20px',
                 boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                animation: 'pulse 2s infinite'
-                
+                animation: 'pulse 2s infinite ease-in-out',
+                transformOrigin: 'center'
             }}>
                 Employee Management
             </h1>
@@ -569,7 +584,7 @@ const EmployeeListWithPagination = () => {
                     border: '1px solid #c8e6c9'
                 }}>
                     <h3 style={{ marginTop: 0, marginBottom: '15px' }}>Add New Employee</h3>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '15px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '15px' }}>
                         <div>
                             <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>First Name</label>
                             <input
@@ -600,6 +615,16 @@ const EmployeeListWithPagination = () => {
                                 style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
                             />
                         </div>
+                        <div>
+                            <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Salary</label>
+                            <input
+                                type="number"
+                                name="salary"
+                                value={newEmployee.salary}
+                                onChange={handleNewEmployeeChange}
+                                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
+                            />
+                        </div>
                     </div>
                     <div style={{ marginTop: '15px', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
                         <button
@@ -618,7 +643,7 @@ const EmployeeListWithPagination = () => {
                         </button>
                         <button
                             onClick={handleAddEmployee}
-                            disabled={loading || !newEmployee.firstName || !newEmployee.lastName || !newEmployee.emailId}
+                            disabled={loading || !newEmployee.firstName || !newEmployee.lastName || !newEmployee.emailId || !newEmployee.salary}
                             style={{
                                 padding: '8px 16px',
                                 backgroundColor: '#4caf50',
@@ -627,7 +652,7 @@ const EmployeeListWithPagination = () => {
                                 borderRadius: '4px',
                                 cursor: 'pointer',
                                 fontWeight: 'bold',
-                                opacity: (loading || !newEmployee.firstName || !newEmployee.lastName || !newEmployee.emailId) ? 0.7 : 1
+                                opacity: (loading || !newEmployee.firstName || !newEmployee.lastName || !newEmployee.emailId || !newEmployee.salary) ? 0.7 : 1
                             }}
                         >
                             {loading ? 'Adding...' : 'Add Employee'}
@@ -657,6 +682,9 @@ const EmployeeListWithPagination = () => {
                             <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #ff9800' }}>First Name</th>
                             <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #ff9800' }}>Last Name</th>
                             <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #ff9800' }}>Email</th>
+                            <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #ff9800' }}>Salary</th>
+                            <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #ff9800' }}>Created Date</th>
+                            <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #ff9800' }}>Updated Date</th>
                             <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #ff9800', width: '150px' }}>Actions</th>
                         </tr>
                     </thead>
@@ -736,6 +764,31 @@ const EmployeeListWithPagination = () => {
                                     </td>
                                     <td style={{ padding: '12px', wordBreak: 'break-word' }}>
                                         {editingId === employee.id ? (
+                                            <input
+                                                type="number"
+                                                value={editData.salary}
+                                                onChange={(e) => handleInputChange(e, 'salary')}
+                                                style={{ width: '100%', padding: '5px' }}
+                                            />
+                                        ) : bulkEdit && selectedRows.includes(employee.id) ? (
+                                            <input
+                                                type="number"
+                                                value={employee.salary}
+                                                onChange={(e) => handleInputChange(e, 'salary')}
+                                                style={{ width: '100%', padding: '5px' }}
+                                            />
+                                        ) : (
+                                            `$${employee.salary?.toLocaleString() || '0'}`
+                                        )}
+                                    </td>
+                                    <td style={{ padding: '12px', wordBreak: 'break-word' }}>
+                                        {new Date(employee.createdDate).toLocaleDateString()}
+                                    </td>
+                                    <td style={{ padding: '12px', wordBreak: 'break-word' }}>
+                                        {new Date(employee.updatedDate).toLocaleDateString()}
+                                    </td>
+                                    <td style={{ padding: '12px', wordBreak: 'break-word' }}>
+                                        {editingId === employee.id ? (
                                             <div style={{ display: 'flex', gap: '5px' }}>
                                                 <button 
                                                     onClick={handleSave}
@@ -803,7 +856,7 @@ const EmployeeListWithPagination = () => {
                             ))
                         ) : (
                             <tr>
-                                <td colSpan={bulkEdit ? "6" : "5"} style={{ padding: '20px', textAlign: 'center', backgroundColor: '#fff' }}>
+                                <td colSpan={bulkEdit ? "9" : "8"} style={{ padding: '20px', textAlign: 'center', backgroundColor: '#fff' }}>
                                     No employees found
                                 </td>
                             </tr>
