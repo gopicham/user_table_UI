@@ -48,7 +48,7 @@ const PaginationControls = React.memo(({ currentPage, totalPages, handlePageClic
                     </button>
                 )
             ))}
-
+          <style>{styles}</style>
             <button
                 aria-label="Next Page"
                 onClick={() => handlePageClick(currentPage + 1)}
@@ -78,6 +78,14 @@ PaginationControls.propTypes = {
     generatePageNumbers: PropTypes.func.isRequired,
 };
 
+const styles = `
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+  100% { transform: scale(1); }
+}
+`;
+
 const EmployeeListWithPagination = () => {
     const [employees, setEmployees] = useState([]);
     const [originalEmployees, setOriginalEmployees] = useState([]);
@@ -92,6 +100,12 @@ const EmployeeListWithPagination = () => {
     const [selectedRows, setSelectedRows] = useState([]);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [employeeToDelete, setEmployeeToDelete] = useState(null);
+    const [showAddForm, setShowAddForm] = useState(false);
+    const [newEmployee, setNewEmployee] = useState({
+        firstName: '',
+        lastName: '',
+        emailId: ''
+    });
 
     useEffect(() => {
         const token = localStorage.getItem('token');
@@ -205,6 +219,54 @@ const EmployeeListWithPagination = () => {
     const handleCancelDelete = () => {
         setShowDeleteConfirm(false);
         setEmployeeToDelete(null);
+    };
+
+    const handleAddEmployee = async () => {
+        const token = localStorage.getItem('token');
+        if (!token) {
+            setError('User not authenticated. Please log in first.');
+            return;
+        }
+
+        try {
+            setLoading(true);
+            await axios.post(
+                'http://localhost:8080/api/v1/employees',
+                newEmployee,
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+            
+            // Refresh the employee list
+            await fetchEmployees(token);
+            setShowAddForm(false);
+            setNewEmployee({
+                firstName: '',
+                lastName: '',
+                emailId: ''
+            });
+        } catch (error) {
+            console.error('Error adding employee:', error);
+            setError('Failed to add employee. Please try again.');
+            setLoading(false);
+        }
+    };
+
+    const handleNewEmployeeChange = (e) => {
+        setNewEmployee({
+            ...newEmployee,
+            [e.target.name]: e.target.value
+        });
+    };
+
+    const handleAddFormToggle = () => {
+        setShowAddForm(!showAddForm);
+        if (showAddForm) {
+            setNewEmployee({
+                firstName: '',
+                lastName: '',
+                emailId: ''
+            });
+        }
     };
 
     const totalPages = Math.ceil(totalEmployees / employeesPerPage);
@@ -369,7 +431,7 @@ const EmployeeListWithPagination = () => {
         );
     }
 
-    if (loading && !editingId && !bulkEdit) {
+    if (loading && !editingId && !bulkEdit && !showAddForm) {
         return (
             <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '20px' }}>
                 <h1 style={{ 
@@ -406,13 +468,29 @@ const EmployeeListWithPagination = () => {
                 backgroundColor: '#ffeb3b',
                 borderRadius: '4px',
                 marginBottom: '20px',
-                boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                animation: 'pulse 2s infinite'
+                
             }}>
-                User Table
+                Employee Management
             </h1>
 
             <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'space-between' }}>
                 <div style={{ display: 'flex', gap: '10px' }}>
+                    <button
+                        onClick={handleAddFormToggle}
+                        style={{
+                            padding: '8px 16px',
+                            backgroundColor: showAddForm ? '#ff5722' : '#4caf50',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            fontWeight: 'bold'
+                        }}
+                    >
+                        {showAddForm ? 'Cancel Add' : 'Add Employee'}
+                    </button>
                     <button
                         onClick={handleBulkEditToggle}
                         style={{
@@ -481,6 +559,82 @@ const EmployeeListWithPagination = () => {
                     </div>
                 )}
             </div>
+
+            {showAddForm && (
+                <div style={{ 
+                    padding: '20px', 
+                    marginBottom: '20px', 
+                    backgroundColor: '#e8f5e9',
+                    borderRadius: '4px',
+                    border: '1px solid #c8e6c9'
+                }}>
+                    <h3 style={{ marginTop: 0, marginBottom: '15px' }}>Add New Employee</h3>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '15px' }}>
+                        <div>
+                            <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>First Name</label>
+                            <input
+                                type="text"
+                                name="firstName"
+                                value={newEmployee.firstName}
+                                onChange={handleNewEmployeeChange}
+                                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
+                            />
+                        </div>
+                        <div>
+                            <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Last Name</label>
+                            <input
+                                type="text"
+                                name="lastName"
+                                value={newEmployee.lastName}
+                                onChange={handleNewEmployeeChange}
+                                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
+                            />
+                        </div>
+                        <div>
+                            <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Email</label>
+                            <input
+                                type="email"
+                                name="emailId"
+                                value={newEmployee.emailId}
+                                onChange={handleNewEmployeeChange}
+                                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
+                            />
+                        </div>
+                    </div>
+                    <div style={{ marginTop: '15px', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                        <button
+                            onClick={handleAddFormToggle}
+                            style={{
+                                padding: '8px 16px',
+                                backgroundColor: '#f44336',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '4px',
+                                cursor: 'pointer',
+                                fontWeight: 'bold'
+                            }}
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            onClick={handleAddEmployee}
+                            disabled={loading || !newEmployee.firstName || !newEmployee.lastName || !newEmployee.emailId}
+                            style={{
+                                padding: '8px 16px',
+                                backgroundColor: '#4caf50',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '4px',
+                                cursor: 'pointer',
+                                fontWeight: 'bold',
+                                opacity: (loading || !newEmployee.firstName || !newEmployee.lastName || !newEmployee.emailId) ? 0.7 : 1
+                            }}
+                        >
+                            {loading ? 'Adding...' : 'Add Employee'}
+                        </button>
+                    </div>
+                </div>
+            )}
 
             <div style={{ 
                 minHeight: '300px', 
