@@ -2,6 +2,9 @@ import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import PropTypes from 'prop-types';
 import { debounce } from 'lodash';
+import PdfDownloadButton from './PdfDownloadButton';
+
+const apiUrl = process.env.REACT_APP_API_BASE_URL;
 
 const PaginationControls = React.memo(({ currentPage, totalPages, handlePageClick, loading, generatePageNumbers }) => {
     return (
@@ -118,7 +121,7 @@ const EmployeeListWithPagination = () => {
         setLoading(true);
         setError(null);
 
-        axios.get(`http://localhost:8080/api/v1/employees?page=${currentPage}&limit=${employeesPerPage}`, {
+        axios.get(`${apiUrl}/api/v1/employees?page=${currentPage}&limit=${employeesPerPage}`, {
             headers: {
                 Authorization: `Bearer ${token}`
             }
@@ -150,7 +153,7 @@ const EmployeeListWithPagination = () => {
         try {
             setLoading(true);
             await axios.delete(
-                `http://localhost:8080/api/v1/employees/${id}`,
+                `${apiUrl}/api/v1/employees/${id}`,
                 { headers: { Authorization: `Bearer ${token}` } }
             );
             
@@ -172,7 +175,7 @@ const EmployeeListWithPagination = () => {
         try {
             setLoading(true);
             await axios.delete(
-                'http://localhost:8080/api/v1/employees/bulk',
+                '${apiUrl}/api/v1/employees/bulk',
                 { 
                     data: { ids: selectedRows },
                     headers: { Authorization: `Bearer ${token}` } 
@@ -224,7 +227,7 @@ const EmployeeListWithPagination = () => {
         try {
             setLoading(true);
             await axios.post(
-                'http://localhost:8080/api/v1/employees',
+                '${apiUrl}/api/v1/employees',
                 {
                     ...newEmployee,
                     salary: parseFloat(newEmployee.salary),
@@ -368,7 +371,7 @@ const EmployeeListWithPagination = () => {
             
             if (editingId) {
                 await axios.put(
-                    `http://localhost:8080/api/v1/employees/${editingId}`,
+                    `${apiUrl}/api/v1/employees/${editingId}`,
                     {
                         ...editData,
                         salary: parseFloat(editData.salary),
@@ -389,7 +392,7 @@ const EmployeeListWithPagination = () => {
                     }));
                 
                 await axios.put(
-                    'http://localhost:8080/api/v1/employees/bulk',
+                    '${apiUrl}/api/v1/employees/bulk',
                     { employees: updates },
                     { headers: { Authorization: `Bearer ${token}` } }
                 );
@@ -487,7 +490,7 @@ const EmployeeListWithPagination = () => {
                 animation: 'pulse 2s infinite ease-in-out',
                 transformOrigin: 'center'
             }}>
-                Employee Management
+                Customer Order Details
             </h1>
 
             <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'space-between' }}>
@@ -520,6 +523,7 @@ const EmployeeListWithPagination = () => {
                     >
                         {bulkEdit ? 'Cancel Bulk Edit' : 'Bulk Edit'}
                     </button>
+                    <PdfDownloadButton />
                     {selectedRows.length > 0 && (
                         <button
                             onClick={handleBulkDeleteClick}
@@ -671,21 +675,22 @@ const EmployeeListWithPagination = () => {
             }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                     <thead style={{ 
-                        backgroundColor: '#ffc107',
+                        backgroundColor: 'white',
                         position: 'sticky',
                         top: 0,
-                        zIndex: 1
+                        zIndex: 1,
+                        borderBottom: '2px solid #ff9800'  // Added border for better separation
                     }}>
                         <tr>
                             {bulkEdit && <th style={{ padding: '12px', width: '40px' }}></th>}
-                            <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #ff9800' }}>Employee ID</th>
+                            <th style={{ padding: '8px',  textAlign: 'left', borderBottom: '2px solidhsl(35, 17.60%, 67.60%)' }}>Employee ID</th>
                             <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #ff9800' }}>First Name</th>
-                            <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #ff9800' }}>Last Name</th>
+                            <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solidrgb(255, 152, 0)' }}>Last Name</th>
                             <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #ff9800' }}>Email</th>
                             <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #ff9800' }}>Salary</th>
                             <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #ff9800' }}>Created Date</th>
                             <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #ff9800' }}>Updated Date</th>
-                            <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #ff9800', width: '150px' }}>Actions</th>
+                            <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solidrgb(60, 0, 255)', width: '150px' }}>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
